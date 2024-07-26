@@ -31,7 +31,7 @@ from WDL.runtime.backend.cli_subprocess import _SubprocessScheduler
 from WDL.runtime.backend.singularity import SingularityContainer
 
 
-class SlurmSingularity(SingularityContainer):
+class GridSingularity(SingularityContainer):
     @classmethod
     def global_init(cls, cfg: config.Loader, logger: logging.Logger) -> None:
         # Set resources to maxsize. The base class (_SubProcessScheduler)
@@ -39,8 +39,7 @@ class SlurmSingularity(SingularityContainer):
         # dealing with a cluster these limits do not apply.
         cls._resource_limits = {
             "cpu": sys.maxsize,
-            "mem_bytes": sys.maxsize,
-            "time": sys.maxsize,
+            "mem_bytes": sys.maxsize
         }
         _SubprocessScheduler.global_init(cls._resource_limits)
         # Since we run on the cluster, the images need to be placed in a
@@ -65,78 +64,57 @@ class SlurmSingularity(SingularityContainer):
 
     @property
     def cli_name(self) -> str:
-        return "slurm_singularity"
+        return "grid_singularity"
 
     def process_runtime(self,
                         logger: logging.Logger,
                         runtime_eval: Dict[str, Value.Base]) -> None:
         """Any non-default runtime variables can be parsed here"""
         super().process_runtime(logger, runtime_eval)
-        if "time_minutes" in runtime_eval:
-            time_minutes = runtime_eval["time_minutes"].coerce(Type.Int()).value
-            self.runtime_values["time_minutes"] = time_minutes
 
-        if "slurm_partition" in runtime_eval:
-            slurm_partition = runtime_eval["slurm_partition"].coerce(
+        if "grid_queue" in runtime_eval:
+            grid_queue = runtime_eval["grid_queue"].coerce(
                 Type.String()).value
-            self.runtime_values["slurm_partition"] = slurm_partition
+            self.runtime_values["grid_queue"] = grid_queue
 
-        if "gpuCount" in runtime_eval:
-            gpuCount = max(1, runtime_eval["gpuCount"].coerce(Type.Int()).value)
-            self.runtime_values["gpuCount"] = gpuCount
-
-        if "slurm_constraint" in runtime_eval:
-            slurm_constraint = runtime_eval["slurm_constraint"].coerce(
-                Type.String()).value
-            self.runtime_values["slurm_constraint"] = slurm_constraint
-
-    def _slurm_invocation(self):
-        # We use srun as this makes the submitted job behave like a local job.
-        # This also gives informative exit codes back, including 253 for out
-        # of memory.
-        srun_args = [
-            "srun",
-            "--job-name", self.run_id,
+    def _grid_invocation(self):
+        # We use qrsh as this makes the submitted job behave like a local job.
+        qrsh_args = [
+            "qrsh",
+            "-V",
+            "-b",
+            "yes",
+            "-now",
+            "no",
+            "-N", self.run_id,
         ]
 
-        partition = self.runtime_values.get("slurm_partition", None)
-        if partition is not None:
-            srun_args.extend(["--partition", partition])
+        queue = self.runtime_values.get("grid_queue", None)
+        if queue is not None:
+            qrsh_args.extend(["-q", queue])
 
         cpu = self.runtime_values.get("cpu", None)
         if cpu is not None:
-            srun_args.extend(["--cpus-per-task", str(cpu)])
+            qrsh_args.extend(["-pe", "smp", str(cpu)])
 
         memory = self.runtime_values.get("memory_reservation", None)
         if memory is not None:
             # Round to the nearest megabyte.
-            srun_args.extend(["--mem", f"{round(memory / (1024 ** 2))}M"])
+            qrsh_args.extend(["-l", f"mem_free={round(memory / (1024 ** 2))}M"])
 
-        gpu = self.runtime_values.get("gpu", None)
-        if gpu:
-            gpuCount = self.runtime_values.get("gpuCount", 1)
-            srun_args.extend(["--gres", f"gpu:{gpuCount}"])
-
-        time_minutes = self.runtime_values.get("time_minutes", None)
-        if time_minutes is not None:
-            srun_args.extend(["--time", str(time_minutes)])
-
-        slurm_constraint = self.runtime_values.get("slurm_constraint", None)
-        if slurm_constraint is not None:
-            srun_args.extend(["--constraint", slurm_constraint])
-
-        if self.cfg.has_section("slurm"):
-            extra_args = self.cfg.get("slurm", "extra_args")
+        if self.cfg.has_section("grid"):
+            extra_args = self.cfg.get("grid", "extra_args")
             if extra_args is not None:
-                srun_args.extend(shlex.split(extra_args))
-        return srun_args
+                qrsh_args.extend(shlex.split(extra_args))
+        print(qrsh_args)
+        return qrsh_args
 
     def _run_invocation(self, logger: logging.Logger, cleanup: ExitStack,
                         image: str) -> List[str]:
         singularity_command = super()._run_invocation(logger, cleanup, image)
 
-        slurm_invocation = self._slurm_invocation()
-        slurm_invocation.extend(singularity_command)
-        logger.info("Slurm invocation: " + ' '.join(
-            shlex.quote(part) for part in slurm_invocation))
-        return slurm_invocation
+        grid_invocation = self._grid_invocation()
+        grid_invocation.extend(singularity_command)
+        logger.info("Grid invocation: " + ' '.join(
+            shlex.quote(part) for part in grid_invocation))
+        return grid_invocation

@@ -24,24 +24,24 @@ with open("README.rst") as fp:
     long_description = fp.read()
 
 setup(
-    name="miniwdl-slurm",
-    version="0.3.0-dev",
+    name="miniwdl-grid",
+    version="0.1.0-dev",
     license="MIT",
-    url="https://github.com/miniwdl-ext/miniwdl-slurm",
-    description="miniwdl slurm backend using singularity",
-    keywords="WDL miniwdl slurm backend singularity",
+    url="https://github.com/williamrowell/miniwdl-grid",
+    description="miniwdl grid backend using singularity",
+    keywords="WDL miniwdl grid backend singularity",
     long_description=long_description,
     zip_safe=False,
     long_description_content_type="text/x-rst",
-    author="Leiden University Medical Center",
-    author_email="sasc@lumc.nl",
+    author="williamrowell",
+    author_email="wrowell@pacb.com",
     python_requires=">=3.6",
     packages=find_packages('src'),
     package_dir={'': 'src'},
     install_requires=["miniwdl>=1.7.0"],
     entry_points={
         "miniwdl.plugin.container_backend": [
-            "slurm_singularity=miniwdl_slurm:SlurmSingularity"
+            "grid_singularity=miniwdl_grid:GridSingularity"
         ],
     },
     classifiers=[

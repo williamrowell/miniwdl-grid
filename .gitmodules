@@ -1,3 +1,0 @@
-[submodule "tests/QC"]
-	path = tests/QC
-	url = https://github.com/biowdl/QC.git
