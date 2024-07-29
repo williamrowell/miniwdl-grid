@@ -13,7 +13,7 @@ Installation
 
 For the development version::
 
-    git clone git@github.com:williamrowell/miniwdl-grid.git
+    git clone https://github.com/williamrowell/miniwdl-grid.git
 
     cd miniwdl-grid
 
