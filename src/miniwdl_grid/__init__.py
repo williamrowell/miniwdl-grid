@@ -101,7 +101,7 @@ class GridSingularity(SingularityContainer):
         if memory is not None:
             # Divide by the number of CPUs to get "memory per slot".
             # Round to the nearest megabyte.
-            grid_args.extend(["-l", f"mem_free={round(memory / cpu if cpu else 1 / (1024 ** 2))}M"])
+            grid_args.extend(["-l", f"mem_free={round(memory / (cpu if cpu else 1) / (1024 ** 2))}M"])
 
         if self.cfg.has_section("grid"):
             extra_args = self.cfg.get("grid", "extra_args")
