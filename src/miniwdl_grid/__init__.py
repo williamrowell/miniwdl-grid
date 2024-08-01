@@ -77,37 +77,38 @@ class GridSingularity(SingularityContainer):
                 Type.String()).value
             self.runtime_values["grid_queue"] = grid_queue
 
-    def _grid_invocation(self):
-        # We use qrsh as this makes the submitted job behave like a local job.
-        qrsh_args = [
-            "qrsh",
-            "-V",
-            "-b",
-            "yes",
-            "-now",
-            "no",
-            "-N", self.run_id,
+    def _grid_invocation(self): 
+        grid_args = [
+            "qsub",
+            "-b", "yes",        # binary ccommand
+            "-now", "no",       # add the job to the pending queue
+            "-sync", "yes",     # wait for the job to complete
+            "-S", "/bin/bash",  # job shell
+            "-V",               # export all environment variables
+            "-R", "yes",        # create a reservation
+            "-N", self.run_id,  # job name
         ]
 
         queue = self.runtime_values.get("grid_queue", None)
         if queue is not None:
-            qrsh_args.extend(["-q", queue])
+            grid_args.extend(["-q", queue])
 
         cpu = self.runtime_values.get("cpu", None)
         if cpu is not None:
-            qrsh_args.extend(["-pe", "smp", str(cpu)])
+            grid_args.extend(["-pe", "smp", str(cpu)])
 
         memory = self.runtime_values.get("memory_reservation", None)
         if memory is not None:
+            # Divide by the number of CPUs to get "memory per slot".
             # Round to the nearest megabyte.
-            qrsh_args.extend(["-l", f"mem_free={round(memory / (1024 ** 2))}M"])
+            grid_args.extend(["-l", f"mem_free={round(memory / cpu if cpu else 1 / (1024 ** 2))}M"])
 
         if self.cfg.has_section("grid"):
             extra_args = self.cfg.get("grid", "extra_args")
             if extra_args is not None:
-                qrsh_args.extend(shlex.split(extra_args))
-        print(qrsh_args)
-        return qrsh_args
+                grid_args.extend(shlex.split(extra_args))
+        print(grid_args)
+        return grid_args
 
     def _run_invocation(self, logger: logging.Logger, cleanup: ExitStack,
                         image: str) -> List[str]:

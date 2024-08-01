@@ -76,5 +76,5 @@ example can be used to use miniwdl on a GRID cluster:
     image_cache = "$PWD/miniwdl_singularity_cache"
 
     [grid]
-    # extra arguments passed to every qrsh command (optional).
+    # extra arguments passed to every qsub command (optional).
     extra_args=""

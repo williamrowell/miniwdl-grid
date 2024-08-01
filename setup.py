@@ -25,7 +25,7 @@ with open("README.rst") as fp:
 
 setup(
     name="miniwdl-grid",
-    version="0.1.0-dev",
+    version="0.1.1-dev",
     license="MIT",
     url="https://github.com/williamrowell/miniwdl-grid",
     description="miniwdl grid backend using singularity",
