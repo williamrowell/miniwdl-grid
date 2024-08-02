@@ -80,13 +80,14 @@ class GridSingularity(SingularityContainer):
     def _grid_invocation(self): 
         grid_args = [
             "qsub",
-            "-b", "yes",        # binary ccommand
-            "-now", "no",       # add the job to the pending queue
-            "-sync", "yes",     # wait for the job to complete
-            "-S", "/bin/bash",  # job shell
-            "-V",               # export all environment variables
-            "-R", "yes",        # create a reservation
-            "-N", self.run_id,  # job name
+            "-b", "yes",            # binary command
+            "-now", "no",           # add the job to the pending queue
+            "-sync", "yes",         # wait for the job to complete
+            "-S", "/usr/bin/bash",  # job shell
+            "-cwd",                 # run in cwd
+            "-V",                   # export all environment variables
+            "-R", "yes",            # create a reservation
+            "-N", self.run_id,      # job name
         ]
 
         queue = self.runtime_values.get("grid_queue", None)
